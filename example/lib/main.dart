@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:protect_app/protect_app.dart';
 
@@ -27,10 +27,46 @@ class _MyAppState extends State<MyApp> {
   bool isDeviceUseTurnOnTheDeveloperMode = false;
   bool isDeviceIsReal = false;
   Map dataOfProxyDeviceUse = {};
+  StreamSubscription<String>? _screenCaptureSubscription;
+  String _lastCaptureEvent = 'No capture detected yet';
+
   @override
   void initState() {
     super.initState();
     initPlatformState();
+    _setupScreenCaptureListener();
+  }
+
+  /// Set up listener for screenshot and screen recording detection
+  void _setupScreenCaptureListener() {
+    _screenCaptureSubscription =
+        _protectAppPlugin.onScreenCaptureDetected.listen((event) {
+      setState(() {
+        _lastCaptureEvent = event;
+      });
+
+      // Show error message to user
+      if (mounted) {
+        final message = event == 'screenshot'
+            ? '⚠️ Screenshots are not allowed in this app!'
+            : '⚠️ Screen recording is not allowed in this app!';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _screenCaptureSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> initPlatformState() async {
@@ -76,6 +112,35 @@ class _MyAppState extends State<MyApp> {
               Text('data of the proxy use:$dataOfProxyDeviceUse'),
               Text('is the device is real:$isDeviceIsReal'),
               Text('is the app on the testflight.:$isRunOnTestFlight'),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      '🔒 Screen Capture Detection',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Last event: $_lastCaptureEvent'),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Try taking a screenshot or recording!',
+                      style:
+                          TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

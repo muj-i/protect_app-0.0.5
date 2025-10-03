@@ -5,10 +5,17 @@ import Foundation
 import Network
 
 public class ProtectAppPlugin: NSObject, FlutterPlugin {
+    private static var screenCaptureDetector: ScreenCaptureDetector?
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "protect_app", binaryMessenger: registrar.messenger())
         let instance = ProtectAppPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+        
+        // Register event channel for screen capture detection
+        let eventChannel = FlutterEventChannel(name: "protect_app/screen_capture", binaryMessenger: registrar.messenger())
+        screenCaptureDetector = ScreenCaptureDetector()
+        eventChannel.setStreamHandler(screenCaptureDetector)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

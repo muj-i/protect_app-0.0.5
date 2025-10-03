@@ -44,4 +44,22 @@ class ProtectApp {
   Future<bool?> isRunningInTestFlight() {
     return ProtectAppPlatform.instance.isRunningInTestFlight();
   }
+
+  /// Listens for screenshot or screen recording attempts.
+  /// Returns a [Stream<String>] that emits events when screen capture is detected.
+  /// Event values: 'screenshot' or 'screen_recording'
+  ///
+  /// Example usage:
+  /// ```dart
+  /// ProtectApp().onScreenCaptureDetected.listen((event) {
+  ///   if (event == 'screenshot') {
+  ///     // Show error message for screenshot
+  ///   } else if (event == 'screen_recording') {
+  ///     // Show error message for screen recording
+  ///   }
+  /// });
+  /// ```
+  Stream<String> get onScreenCaptureDetected {
+    return ProtectAppPlatform.instance.onScreenCaptureDetected;
+  }
 }

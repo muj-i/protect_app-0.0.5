@@ -12,6 +12,12 @@ class MethodChannelProtectApp extends ProtectAppPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('protect_app');
 
+  /// The event channel used to listen for screen capture events.
+  @visibleForTesting
+  final eventChannel = const EventChannel('protect_app/screen_capture');
+
+  Stream<String>? _screenCaptureStream;
+
   /// Checks if the device is currently using a VPN.
   /// Returns a [bool] indicating whether the device is using a VPN.
   @override
@@ -71,5 +77,14 @@ class MethodChannelProtectApp extends ProtectAppPlatform {
   Future<bool?> isUseJailBrokenOrRoot() async {
     final version = await methodChannel.invokeMethod('isUseJailBrokenOrRoot');
     return version;
+  }
+
+  /// Listens for screenshot or screen recording attempts.
+  /// Returns a [Stream<String>] that emits 'screenshot' or 'screen_recording' events.
+  @override
+  Stream<String> get onScreenCaptureDetected {
+    _screenCaptureStream ??=
+        eventChannel.receiveBroadcastStream().map((event) => event.toString());
+    return _screenCaptureStream!;
   }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:protect_app/protect_app_method_channel.dart';
+// import 'package:protect_app/protect_app_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelProtectApp platform = MethodChannelProtectApp();
+  // MethodChannelProtectApp platform = MethodChannelProtectApp();
   const MethodChannel channel = MethodChannel('protect_app');
 
   setUp(() {
