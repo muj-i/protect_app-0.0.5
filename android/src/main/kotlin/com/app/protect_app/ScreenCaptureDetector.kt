@@ -4,14 +4,15 @@ import android.app.Activity
 import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.util.Log
 import io.flutter.plugin.common.EventChannel
 
 /**
- * Detects screenshot and screen recording attempts on Android
+ * Detects screenshots by monitoring MediaStore for new images
+ * Similar to iOS's UIScreen.capturedDidChangeNotification approach
  */
 class ScreenCaptureDetector(
     private val context: Context,
@@ -19,126 +20,89 @@ class ScreenCaptureDetector(
 ) : EventChannel.StreamHandler {
 
     private var eventSink: EventChannel.EventSink? = null
-    private var screenshotObserver: ContentObserver? = null
-    private var isMonitoring = false
+    private var contentObserver: ContentObserver? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var lastEventTime = 0L
+    
+    companion object {
+        private const val TAG = "ScreenCaptureDetector"
+        private const val DEBOUNCE_MS = 500L
+    }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        Log.d(TAG, "📸 Setting up screenshot detection")
         eventSink = events
         startMonitoring()
     }
 
     override fun onCancel(arguments: Any?) {
+        Log.d(TAG, "📸 Stopping screenshot detection")
         stopMonitoring()
         eventSink = null
     }
 
-    /**
-     * Start monitoring for screenshot events
-     */
     private fun startMonitoring() {
-        if (isMonitoring) return
-        isMonitoring = true
-
-        // Monitor screenshot detection
-        screenshotObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        contentObserver = object : ContentObserver(handler) {
             override fun onChange(selfChange: Boolean, uri: Uri?) {
                 super.onChange(selfChange, uri)
+                
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastEventTime < DEBOUNCE_MS) return
+                
+                lastEventTime = currentTime
+                
+                Log.d(TAG, "📸 Media change detected: $uri")
+                
                 uri?.let {
-                    if (it.toString().contains(MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString())) {
-                        // Check if the recent image is a screenshot
-                        if (isScreenshot(it)) {
-                            eventSink?.success("screenshot")
-                        }
+                    if (isScreenshotUri(it)) {
+                        sendEvent("screenshot")
                     }
                 }
             }
         }
-
-        // Register observer for external images
+        
         context.contentResolver.registerContentObserver(
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
             true,
-            screenshotObserver!!
+            contentObserver!!
         )
+        
+        Log.d(TAG, "✅ ContentObserver registered")
     }
 
-    /**
-     * Stop monitoring for screenshot events
-     */
     private fun stopMonitoring() {
-        if (!isMonitoring) return
-        isMonitoring = false
-
-        screenshotObserver?.let {
+        contentObserver?.let {
             context.contentResolver.unregisterContentObserver(it)
+            Log.d(TAG, "✅ ContentObserver unregistered")
         }
-        screenshotObserver = null
+        contentObserver = null
     }
 
-    /**
-     * Check if the captured image is a screenshot
-     */
-    private fun isScreenshot(uri: Uri): Boolean {
-        try {
-            val projection = arrayOf(
-                MediaStore.Images.Media.DISPLAY_NAME,
-                MediaStore.Images.Media.DATA,
-                MediaStore.Images.Media.DATE_ADDED
-            )
+    private fun isScreenshotUri(uri: Uri): Boolean {
+        val path = uri.toString().lowercase()
+        return path.contains("screenshot") || 
+               path.contains("screen_shot") ||
+               path.contains("screencap")
+    }
 
-            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val displayNameIndex = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME)
-                    val dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA)
-                    val dateAddedIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATE_ADDED)
-
-                    if (displayNameIndex >= 0 && dataIndex >= 0 && dateAddedIndex >= 0) {
-                        val displayName = cursor.getString(displayNameIndex)?.toLowerCase() ?: ""
-                        val data = cursor.getString(dataIndex)?.toLowerCase() ?: ""
-                        val dateAdded = cursor.getLong(dateAddedIndex)
-
-                        // Check if the image was added recently (within last 2 seconds)
-                        val currentTime = System.currentTimeMillis() / 1000
-                        if (currentTime - dateAdded > 2) {
-                            return false
-                        }
-
-                        // Check if the path or filename contains screenshot-related keywords
-                        val screenshotKeywords = listOf(
-                            "screenshot",
-                            "screen_shot",
-                            "screen-shot",
-                            "screencap",
-                            "screen_capture",
-                            "screen-capture",
-                            "/screenshots/",
-                            "/screencapture/"
-                        )
-
-                        return screenshotKeywords.any { keyword ->
-                            displayName.contains(keyword) || data.contains(keyword)
-                        }
-                    }
-                }
+    private fun sendEvent(event: String) {
+        handler.post {
+            try {
+                eventSink?.success(event)
+                Log.d(TAG, "✅ Event sent: $event")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error sending event", e)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-        return false
     }
 
-    /**
-     * Update activity reference
-     */
     fun updateActivity(activity: Activity?) {
         this.activity = activity
     }
 
-    /**
-     * Clean up resources
-     */
     fun dispose() {
         stopMonitoring()
         activity = null
     }
 }
+

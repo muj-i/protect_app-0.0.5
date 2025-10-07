@@ -24,7 +24,7 @@ class ProtectAppPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "protect_app")
     channel.setMethodCallHandler(this)
     
-    // Register event channel for screen capture detection
+    // Set up event channel for screenshot detection
     eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "protect_app/screen_capture")
     screenCaptureDetector = ScreenCaptureDetector(context, activity)
     eventChannel.setStreamHandler(screenCaptureDetector)
@@ -32,15 +32,16 @@ class ProtectAppPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
   override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
     when (call.method) {
-      "isDeviceUseVPN" -> result.success(CheckVpn(context).isVpnActive())
-      "dataOfCurrentProxy" -> result.success(CheckProxy(context).getProxyData())
-      "checkIsTheDeveloperModeOn" -> result.success(CheckTheDeveloperMode(context).isDeveloperModeEnabled())
-      "isItRealDevice" -> result.success(CheckTheDeveloperMode(context).isItRealDevice())
-      "isUseJailBrokenOrRoot" -> result.success(CheckTheDeveloperMode(context).isRooted())
+      "isDeviceUseVPN" -> result.success(VPNManager.isDeviceUseVPN(context))
+      "dataOfCurrentProxy" -> result.success(ProxyManager.dataOfCurrentProxy(context))
+      "checkIsTheDeveloperModeOn" -> result.success(DeveloperModeManager.isDeveloperModeEnabled())
       "turnOffScreenshots" -> {
-        activity?.let { TurnOffScreenshots(it).turnOff() }
+        activity?.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         result.success(null)
       }
+      "isItRealDevice" -> result.success(DeveloperModeManager.isItRealDevice())
+      "isUseJailBrokenOrRoot" -> result.success(DeveloperModeManager.isUseJailBrokenOrRoot())
+      "isRunningInTestFlight" -> result.success(false) // Only for iOS
       else -> result.notImplemented()
     }
   }

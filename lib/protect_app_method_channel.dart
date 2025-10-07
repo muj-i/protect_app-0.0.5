@@ -16,8 +16,6 @@ class MethodChannelProtectApp extends ProtectAppPlatform {
   @visibleForTesting
   final eventChannel = const EventChannel('protect_app/screen_capture');
 
-  Stream<String>? _screenCaptureStream;
-
   /// Checks if the device is currently using a VPN.
   /// Returns a [bool] indicating whether the device is using a VPN.
   @override
@@ -79,12 +77,11 @@ class MethodChannelProtectApp extends ProtectAppPlatform {
     return version;
   }
 
-  /// Listens for screenshot or screen recording attempts.
-  /// Returns a [Stream<String>] that emits 'screenshot' or 'screen_recording' events.
+  /// Stream to listen for screenshot or screen recording attempts.
   @override
   Stream<String> get onScreenCaptureDetected {
-    _screenCaptureStream ??=
-        eventChannel.receiveBroadcastStream().map((event) => event.toString());
-    return _screenCaptureStream!;
+    return eventChannel
+        .receiveBroadcastStream()
+        .map((event) => event.toString());
   }
 }

@@ -38,7 +38,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   /// Set up listener for screenshot and screen recording detection
-  void _setupScreenCaptureListener() {
+  void _setupScreenCaptureListener() async {
+    // Setup the listener - no permissions needed on either platform
     _screenCaptureSubscription =
         _protectAppPlugin.onScreenCaptureDetected.listen((event) {
       setState(() {
@@ -61,6 +62,8 @@ class _MyAppState extends State<MyApp> {
         );
       }
     });
+
+    print('✅ Screenshot detection listener setup complete');
   }
 
   @override
