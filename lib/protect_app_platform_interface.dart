@@ -70,6 +70,7 @@ abstract class ProtectAppPlatform extends PlatformInterface {
   /// Stream to listen for screenshot or screen recording attempts.
   /// Returns a [Stream<String>] that emits events when a screenshot or screen recording is detected.
   /// Event values: 'screenshot' or 'screen_recording'
+  /// Only support ios
   Stream<String> get onScreenCaptureDetected {
     throw UnimplementedError('Failed to listen for screen capture events.');
   }

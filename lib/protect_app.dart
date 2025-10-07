@@ -56,6 +56,7 @@ class ProtectApp {
   ///   // Show warning dialog
   /// });
   /// ```
+  /// Only support ios
   Stream<String> get onScreenCaptureDetected {
     return ProtectAppPlatform.instance.onScreenCaptureDetected;
   }

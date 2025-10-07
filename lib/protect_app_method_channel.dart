@@ -78,6 +78,7 @@ class MethodChannelProtectApp extends ProtectAppPlatform {
   }
 
   /// Stream to listen for screenshot or screen recording attempts.
+  /// Only support ios
   @override
   Stream<String> get onScreenCaptureDetected {
     return eventChannel
